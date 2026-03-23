@@ -1,0 +1,4 @@
+selenium
+logger
+ChromeDriverManager
+Requests
