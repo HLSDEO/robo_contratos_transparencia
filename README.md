@@ -1,46 +1,53 @@
-# Nome do Bot
+# Robô de Contratos - Transparência
 
 ## 1 - Sobre
-descricao breve sobre a funcionalidade do bot
+Robô de coleta de dados de contratos do portal [Comprasnet Transparência](https://contratos.comprasnet.gov.br/transparencia/contratos). Navega pelas páginas de contratos de uma unidade gestora, acessa o detalhe de cada contrato e extrai informações como dados gerais, histórico, empenhos, faturas, itens e fiscais, salvando tudo em arquivos CSV.
 
 ## 2 - Tecnologias Utilizadas
-As tecnologias utilzadas no processo foram:
-- Python
+- Python 3.9+
 - Selenium
-- Requests
-- Loguru
 - ChromeDriverManager
+- Loguru
 
 ## 3 - Instalação
-Requer python 3.9 ou superior e Google Chrome instalados.
+Requer Python 3.9 ou superior e Google Chrome instalados.
+
+```bash
+pip install -r requirements.txt
+```
 
 ## 4 - Configurações
-As configurações estão parametrizadas no arquivo `app/config/parametros.py`.
+As configurações estão no arquivo `config/parametros.py`.
 
-### 4.1 - Ambiente
-A mudanca de ambiente é configurada na variavel de ambiente chamada `AMBIENTE` que pode ter os valores `dev` ou `prod`.
+| Variável | Descrição |
+|---|---|
+| `SITE` | URL do portal com parâmetros de filtro (unidade gestora, vigência) |
+| `TEMPO_ESPERA` | Tempo de espera padrão (em segundos) para o ChromeDriver |
+| `AMBIENTE` | `dev` para testes locais ou `prod` para execução em produção |
 
-### 4.2 - Site
-A variável aponta para o site que irá iniciar a execução do processo
-
-### 4.3 - Tempo de espera
-Tempo de espera padrão nas atividades realizadas no Chrome Driver.
-
-## Organização das pastas
-- app
-    - config
-        - api.py #contém as funções personalizadas relacionadas a API.
-        - csv.py  #contém as funções personalizadas relacionadas a CSV.
-        - data.py  #contém as funções personalizadas relacionadas a Datas.
-        - log.py  #contém as funções personalizadas relacionadas aos LOGs.
-        - parametros.py  #contém as funções personalizadas relacionadas aos Parametros.
-        - selenium.py   #contém as funções personalizadas relacionadas ao Selenium.
-    - main.py #ponto de partida inicial que contém o fluxo de execução dos módulos.
-    - xpath.py #contém os xpaths do site.
-- log.txt  # arquivo gerado resultado de uma execução.
-- requirements.txt # Libs necessárias para execução.
+## 5 - Organização das pastas
+```
+├── config/
+│   ├── csv.py         # Funções para escrita de arquivos CSV
+│   ├── geral.py       # Funções gerais auxiliares
+│   ├── log.py         # Configuração do logger (Loguru)
+│   ├── parametros.py  # Parâmetros de execução
+│   └── selenium.py    # Funções de automação com Selenium
+├── files/
+│   ├── contratos.csv  # Dados principais dos contratos
+│   ├── empenhos.csv   # Tabela de empenhos por contrato
+│   ├── faturas.csv    # Tabela de faturas por contrato
+│   ├── fiscais.csv    # Tabela de fiscais por contrato
+│   ├── historicos.csv # Tabela de histórico por contrato
+│   ├── itens.csv      # Tabela de itens por contrato
+│   └── log.txt        # Log gerado na execução
+├── main.py            # Fluxo principal de execução
+├── xpath.py           # XPaths utilizados na navegação
+└── requirements.txt   # Dependências do projeto
+```
 
 ## 6 - Execução
-Primeiro a ativação do ambiente de virtual.
-```py main.py
+
+```bash
+python main.py
 ```
