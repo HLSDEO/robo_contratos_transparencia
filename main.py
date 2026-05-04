@@ -5,7 +5,7 @@ from config.selenium import *
 from xpath import *
 
 # PRIMEIRA TASK
-abrir_site(SITE.format(UNIDADE='SR/PF/MS'))
+abrir_site(SITE.format(UNIDADE='SR/PF/MS', FIM_INICIO='2026-05-01', FIM_FINAL='2026-05-30'))
 
 # AGUARDAR CARREGAMENTO DA TABELA
 sleep(5)
