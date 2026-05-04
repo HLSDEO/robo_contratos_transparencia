@@ -6,18 +6,24 @@ import pandas as pd
 from .log import *
 import os
 
-def consolidar_por_uasg(prefixo, log):
+def consolidar_por_uasg(prefixo, uasg, log):
     """
-    Consolida arquivos CSV por Unidade Gestora (UASG)
+    Consolida arquivos CSV por tipo + UASG específica
 
     Ex:
-    contratos_*.csv → contratos_200352.csv
+    contratos_*_200352_*.csv → contratos_200352_final.csv
     """
 
-    arquivos = glob.glob(f'files/{prefixo}_*.csv')
+    uasg = re.sub(r'\D', '', str(uasg))
+
+    # pega apenas arquivos daquela UG
+    arquivos = glob.glob(f'files/{prefixo}_*{uasg}*.csv')
+
+    # remove possíveis arquivos já consolidados
+    arquivos = [a for a in arquivos if '_final' not in a]
 
     if not arquivos:
-        log.warning(f'Nenhum arquivo encontrado para {prefixo}')
+        log.warning(f'Nenhum arquivo encontrado para {prefixo} - UASG {uasg}')
         return
 
     dfs = []
@@ -34,40 +40,25 @@ def consolidar_por_uasg(prefixo, log):
 
     df_total = pd.concat(dfs, ignore_index=True)
 
-    if 'Unidade Gestora' not in df_total.columns:
-        log.error(f'Coluna "Unidade Gestora" não encontrada em {prefixo}')
-        return
+    arquivo_saida = f'files/{prefixo}_{uasg}_final.csv'
 
-    # normaliza UASG (somente números)
-    df_total['Unidade Gestora'] = df_total['Unidade Gestora'].str.replace(r'\D', '', regex=True)
+    df_total.to_csv(
+        arquivo_saida,
+        sep=';',
+        index=False,
+        encoding='utf-8-sig'
+    )
 
-    # agrupa por UASG
-    for uasg, grupo in df_total.groupby('Unidade Gestora'):
-        if not uasg or uasg == 'nan':
-            continue
-
-        arquivo_saida = f'files/{prefixo}_{uasg}_final.csv'
-
-        grupo.to_csv(
-            arquivo_saida,
-            sep=';',
-            index=False,
-            encoding='utf-8-sig'
-        )
-
-        log.success(f'Gerado: {arquivo_saida}')
+    log.success(f'Gerado: {arquivo_saida}')
 
 def remover_fragmentados(log):
     """
-    Remove arquivos fragmentados do tipo:
-    contratos_*.csv, itens_*.csv, etc
-
-    Mantém apenas o arquivo consolidado.
+    Remove arquivos fragmentados (mantém apenas *_final.csv)
     """
-    arquivos = glob.glob(f'files/*.csv')
+    arquivos = glob.glob('files/*.csv')
+
     for arquivo in arquivos:
-        # NÃO apaga o consolidado
-        if 'final' in arquivo:
+        if '_final' in arquivo:
             continue
         try:
             os.remove(arquivo)
@@ -88,11 +79,46 @@ def consolidar_todos():
     identificacao = randint(10,100000000)
     log = base_logger.bind(id=identificacao, unidade='GERAL')
 
-    for tipo in tipos:
-        consolidar_por_uasg(tipo, log)
+    # DESCOBRIR TODAS AS UASGs EXISTENTES
+    arquivos = glob.glob('files/contratos_*.csv')
 
+    uasgs = set()
+
+    for arq in arquivos:
+        # ignora já consolidados
+        if '_final' in arq:
+            continue
+
+        try:
+            df = pd.read_csv(arq, sep=';', dtype=str)
+
+            if 'Unidade Gestora' not in df.columns:
+                continue
+
+            df['Unidade Gestora'] = df['Unidade Gestora'].str.replace(r'\D', '', regex=True)
+
+            uasgs.update(
+                df['Unidade Gestora']
+                .dropna()
+                .unique()
+            )
+
+        except Exception as e:
+            log.error(f'Erro ao identificar UASG em {arq}: {e}')
+
+    if not uasgs:
+        log.warning('Nenhuma UASG encontrada para consolidação')
+        return
+
+    # CONSOLIDA POR (TIPO + UASG)
+    for uasg in uasgs:
+        for tipo in tipos:
+            consolidar_por_uasg(tipo, uasg, log)
+
+    # 🧹 REMOVE FRAGMENTADOS
     remover_fragmentados(log)
-        
+
+    log.success('Consolidação final concluída')     
 
 def gerar_intervalos_trimestrais(data_inicio, data_limite):
     """
