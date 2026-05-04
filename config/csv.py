@@ -7,7 +7,8 @@ def escrever_linha_csv(
     arquivo: str,
     conteudo: list,
     cabecalho: list | None = None,
-    codificacao: str = "utf-8-sig"
+    codificacao: str = "utf-8-sig",
+    log=None
 ) -> bool:
     """
     Escreve uma linha em um arquivo CSV, com opção de escrever o cabeçalho
@@ -35,7 +36,7 @@ def escrever_linha_csv(
         return True
 
     except Exception as e:
-        logger.error(f"Erro ao escrever CSV ({arquivo}): {e}")
+        log.error(f"Erro ao escrever CSV ({arquivo}): {e}")
         return False
 
 def escrever_tabela_csv(
@@ -43,7 +44,8 @@ def escrever_tabela_csv(
     linhas_tabela: list[dict[str, Any]],
     identificadores: dict[str, Any],
     codificacao: str = "utf-8-sig",
-    delimiter: str = ";"
+    delimiter: str = ";",
+    log=None
 ) -> bool:
     """
     Escreve no CSV as linhas (dicts), adicionando múltiplas colunas identificadoras à ESQUERDA.
@@ -102,10 +104,10 @@ def escrever_tabela_csv(
         return True
 
     except Exception as e:
-        logger.error(f"Erro ao escrever tabela CSV ({arquivo}): {e}")
+        log.error(f"Erro ao escrever tabela CSV ({arquivo}): {e}")
         return False
 
-def carregar_csv(arquivo: str, delimitador:str):
+def carregar_csv(arquivo: str, delimitador:str, log=None):
     """
     Carrega um arquivo CSV e retorna um reader para iteração linha a linha.
 
@@ -117,5 +119,7 @@ def carregar_csv(arquivo: str, delimitador:str):
         with open(arquivo, newline='') as csvfile:
             conteudo = csv.reader(csvfile, delimiter=delimitador)
             return conteudo
-    except:
+    except Exception as e:
+        if log:
+            log.error(f"Erro ao carregar CSV ({arquivo}): {e}")
         return False

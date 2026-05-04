@@ -13,20 +13,22 @@ from .parametros import *
 from .log import *
 from .geral import *
 
-# INICIALIZAÇÃO DO CHROME - SELENIUM
-logger.info("Inicializando Selenium")
-chrome_options = Options()
-if AMBIENTE.strip().lower() == "prod":
-    chrome_options.add_argument("--headless")  # Rodar sem interface gráfica
-    chrome_options.add_argument("--no-sandbox")  # Requerido em containers
-    chrome_options.add_argument("--disable-dev-shm-usage")  # Evita problemas de memória
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=chrome_options)
-logger.success("Sucesso na inicialização do Selenium")
+def criar_driver(log):
+    log.info("Inicializando Selenium")
+    chrome_options = Options()
 
-# FUNÇÕES PARA SIMPLIFICAR O CHROME - SELENIUM 
+    if AMBIENTE.strip().lower() == "prod":
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
 
-def buscar_elemento(xpath: str, tempo:int=TEMPO_ESPERA):
+    service = Service(ChromeDriverManager().install())
+
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
+    return driver
+
+def buscar_elemento(driver, log, xpath: str, tempo:int=TEMPO_ESPERA):
     """
     Localiza um elemento via XPath, tentando repetidamente até o tempo limite.
 
@@ -39,12 +41,12 @@ def buscar_elemento(xpath: str, tempo:int=TEMPO_ESPERA):
         try:
             return driver.find_element(By.XPATH, xpath)
         except:
-            logger.debug(f"Não achou o elemento: {xpath}. Tentativa {n+1}/{tempo}")
+            log.debug(f"Não achou o elemento: {xpath}. Tentativa {n+1}/{tempo}")
             sleep(1)
             continue
     return False
 
-def esperar_texto(xpath: str, tempo:int = TEMPO_ESPERA):
+def esperar_texto(driver, log, xpath: str, tempo:int = TEMPO_ESPERA):
     """
     Aguarda até que qualquer texto (não vazio) apareça no elemento informado.
 
@@ -63,12 +65,12 @@ def esperar_texto(xpath: str, tempo:int = TEMPO_ESPERA):
             if texto_atual and texto_atual.strip():
                 return texto_atual  # retorna o texto encontrado
         except:
-            logger.debug(f"Aguardando qualquer texto em {xpath}. Tentativa {n+1}/{tempo}")
+            log.debug(f"Aguardando qualquer texto em {xpath}. Tentativa {n+1}/{tempo}")
             sleep(1)
             continue
     return False
 
-def contar_elementos(xpath: str, tempo:int=TEMPO_ESPERA):
+def contar_elementos(driver, log, xpath: str, tempo:int=TEMPO_ESPERA):
     """
     Conta quantos elementos existem para um determinado XPath.
 
@@ -81,12 +83,12 @@ def contar_elementos(xpath: str, tempo:int=TEMPO_ESPERA):
         try:
             return len(driver.find_elements(By.XPATH, xpath))
         except:
-            logger.debug(f"Não achou o elemento: {xpath}. Iniciando nova tentativa.")
+            log.debug(f"Não achou o elemento: {xpath}. Iniciando nova tentativa.")
             sleep(1)
             continue
     return False
 
-def abrir_site(site: str, tempo:int=TEMPO_ESPERA) -> bool:
+def abrir_site(driver, log, site: str, tempo:int=TEMPO_ESPERA) -> bool:
     """
     Abre um site no navegador e ajusta a janela.
 
@@ -102,10 +104,10 @@ def abrir_site(site: str, tempo:int=TEMPO_ESPERA) -> bool:
         sleep(1)
         return True
     except:
-        logger.critical("Falha ao abrir o site")
+        log.critical("Falha ao abrir o site")
         return False
 
-def selecionar_iframe(xpath:str) -> bool:
+def selecionar_iframe(driver, log, xpath:str) -> bool:
     """
     Retorna ao contexto principal e seleciona um iframe pelo XPath.
 
@@ -114,14 +116,14 @@ def selecionar_iframe(xpath:str) -> bool:
     """
     try:
         driver.switch_to.default_content()
-        iframe = buscar_elemento(driver, xpath)
+        iframe = buscar_elemento(driver, log, xpath)
         driver.switch_to.frame(iframe)
         return True
     except:
-        logger.critical("Falha ao selecionar o elemento")
+        log.critical("Falha ao selecionar o elemento")
         return False
     
-def escrever_no_elemento(xpath: str, texto: str) -> bool:
+def escrever_no_elemento(driver, log, xpath: str, texto: str) -> bool:
     """
     Escreve texto em um campo identificado pelo XPath.
 
@@ -130,15 +132,15 @@ def escrever_no_elemento(xpath: str, texto: str) -> bool:
     :return: True se a escrita ocorrer com sucesso, False caso contrário
     """
     try:    
-        elemento = buscar_elemento(xpath)
+        elemento = buscar_elemento(driver, log, xpath)
         if(elemento != False):
             elemento.send_keys(texto)
             return True
     except:
-        logger.error(f"Falha ao selecionar o elemento: {xpath}")
+        log.error(f"Falha ao selecionar o elemento: {xpath}")
         return False
 
-def clicar_no_elemento(xpath: str, nova_janela: bool = False) -> bool:
+def clicar_no_elemento(driver, log, xpath: str, nova_janela: bool = False) -> bool:
     """
     Clica no elemento identificado pelo XPath, com a possibilidade de abrir uma nova janela ou não.
 
@@ -147,7 +149,7 @@ def clicar_no_elemento(xpath: str, nova_janela: bool = False) -> bool:
     :return: True se a escrita ocorrer com sucesso, False caso contrário
     """
     try:
-        elemento = buscar_elemento(xpath)
+        elemento = buscar_elemento(driver, log,xpath)
         if elemento is False:
             raise
 
@@ -172,15 +174,15 @@ def clicar_no_elemento(xpath: str, nova_janela: bool = False) -> bool:
                     return True
                 sleep(0.5)
 
-            logger.warning("Nova aba não foi aberta.")
+            log.warning("Nova aba não foi aberta.")
 
         return True
 
     except Exception as e:
-        logger.error(f"Falha ao clicar no elemento {xpath}: {e}")
+        log.error(f"Falha ao clicar no elemento {xpath}: {e}")
         return False
     
-def fechar_nova_aba(indice=0) -> None:
+def fechar_nova_aba(driver, log, indice=0) -> None:
     """
     Fecha a aba/janela atual e retorna para a janela principal.
     Pressupõe que a janela principal seja a primeira da lista.
@@ -193,10 +195,10 @@ def fechar_nova_aba(indice=0) -> None:
         driver.switch_to.window(janelas[indice])
         driver.switch_to.default_content()
     except Exception as e:
-        logger.error(f"Erro ao fechar a nova aba e voltar para a principal: {e}")
+        log.error(f"Erro ao fechar a nova aba e voltar para a principal: {e}")
 
 
-def obter_valor_campo_selecao(xpath: str):
+def obter_valor_campo_selecao(driver, log, xpath: str):
     """
     Obtém o texto da opção atualmente selecionada em um <select>.
 
@@ -204,13 +206,13 @@ def obter_valor_campo_selecao(xpath: str):
     :return: Texto da opção selecionada ou False
     """
     try:    
-        elemento = Select(buscar_elemento(xpath))
+        elemento = Select(buscar_elemento(driver, log, xpath))
         return elemento.first_selected_option.text
     except:
-        logger.error(f"Falha ao obter o valor do elemento: {xpath}")
+        log.error(f"Falha ao obter o valor do elemento: {xpath}")
         return False
 
-def selecionar_campo_selecao_por_valor(xpath: str, texto: str) -> bool:
+def selecionar_campo_selecao_por_valor(driver, log, xpath: str, texto: str) -> bool:
     """
     Seleciona uma opção de um <select> pelo atributo value.
 
@@ -219,14 +221,14 @@ def selecionar_campo_selecao_por_valor(xpath: str, texto: str) -> bool:
     :return: True se selecionado com sucesso, False caso contrário
     """
     try:    
-        elemento = Select(buscar_elemento(xpath))
+        elemento = Select(buscar_elemento(driver, log, xpath))
         elemento.select_by_value(texto)
         return True
     except:
-        logger.error(f"Falha ao selecionar o campo de seleção - elemento: {xpath}")
+        log.error(f"Falha ao selecionar o campo de seleção - elemento: {xpath}")
         return False
-    
-def selecionar_campo_selecao_por_indice(xpath: str, indice: int) -> bool:
+
+def selecionar_campo_selecao_por_indice(driver, log, xpath: str, indice: int) -> bool:
     """
     Seleciona uma opção de um <select> pelo índice.
 
@@ -235,14 +237,14 @@ def selecionar_campo_selecao_por_indice(xpath: str, indice: int) -> bool:
     :return: True se selecionado com sucesso, False caso contrário
     """
     try:    
-        elemento = Select(buscar_elemento(xpath))
+        elemento = Select(buscar_elemento(driver, log, xpath))
         elemento.select_by_index(indice)
         return True
     except:
-        logger.error(f"Falha ao selecionar o campo de seleção - elemento: {xpath}")
+        log.error(f"Falha ao selecionar o campo de seleção - elemento: {xpath}")
         return False
-    
-def selecionar_campo_selecao_por_texto_visivel(xpath: str, texto: str) -> bool:
+
+def selecionar_campo_selecao_por_texto_visivel(driver, log, xpath: str, texto: str) -> bool:
     """
     Seleciona uma opção de um <select> pelo texto visível.
 
@@ -251,14 +253,14 @@ def selecionar_campo_selecao_por_texto_visivel(xpath: str, texto: str) -> bool:
     :return: True se selecionado com sucesso, False caso contrário
     """
     try:    
-        elemento = Select(buscar_elemento(xpath))
+        elemento = Select(buscar_elemento(driver, log, xpath))
         elemento.select_by_visible_text(texto)
         return True
     except:
-        logger.error(f"Falha ao selecionar o campo de seleção - elemento: {xpath}")
+        log.error(f"Falha ao selecionar o campo de seleção - elemento: {xpath}")
         return False
-    
-def capturar_tabela(xpath_tabela: str, tempo: int = TEMPO_ESPERA, usar_header_como_chave: bool = True):
+
+def capturar_tabela(driver, log, xpath_tabela: str, tempo: int = TEMPO_ESPERA, usar_header_como_chave: bool = True):
     """
     Captura uma tabela HTML e devolve uma lista de dicts (um dict por linha).
 
@@ -275,7 +277,7 @@ def capturar_tabela(xpath_tabela: str, tempo: int = TEMPO_ESPERA, usar_header_co
     ]
     """
     try:
-        tabela = buscar_elemento(xpath_tabela, tempo)
+        tabela = buscar_elemento(driver, log, xpath_tabela, tempo)
         if tabela is False:
             return False
 
@@ -312,5 +314,5 @@ def capturar_tabela(xpath_tabela: str, tempo: int = TEMPO_ESPERA, usar_header_co
         return resultado
 
     except Exception as e:
-        logger.error(f"Erro ao capturar tabela {xpath_tabela}: {e}")
+        log.error(f"Erro ao capturar tabela {xpath_tabela}: {e}")
         return False
