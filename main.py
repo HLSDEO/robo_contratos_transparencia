@@ -199,6 +199,7 @@ def executar_consulta(unidade, data_inicio, data_fim, log):
 ## GERA OS INTERVALOS DE CONSULTA
 data_inicio_consulta = datetime.today().replace(day=1)
 data_limite_consulta = datetime(2040, 12, 31)
+data_limite_consulta = datetime(2026, 6, 30)
 intervalos = gerar_intervalos_trimestrais(data_inicio_consulta, data_limite_consulta)
 
 ## CRIA AS CONSULTAS EM MULTITASK POR UNIDADE GESTORA
@@ -226,8 +227,22 @@ def executar_multitask(unidade):
             except Exception as e:
                 log.error(f'Erro na execução: {e}')
 
+def executar_todas_uasg(unidades_uasg):
+    with ThreadPoolExecutor(max_workers=MAX_UASG_THREADS) as executor:
+
+        futures = [
+            executor.submit(executar_multitask, uasg)
+            for uasg in unidades_uasg.values()
+        ]
+
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                base_logger.error(f'Erro geral: {e}')
+
 ## EXECUTA AS CONSULTAS EM MULTITASK POR UNIDADE GESTORA
-executar_multitask('200352')
+executar_todas_uasg(unidades_uasg)
 
 # CONSOLIDAÇÃO FINAL
 consolidar_todos()

@@ -2,6 +2,7 @@ SITE = "https://contratos.comprasnet.gov.br/transparencia/contratos?orgao=%5B%22
 TEMPO_ESPERA = 5 # em segundos
 AMBIENTE = "prod" # dev #prod
 QUANTIDADE_MULTITASK_POR_UG = 1  # ajuste conforme CPU/RAM
+MAX_UASG_THREADS = 5
 
 unidades_uasg = {
     "PF": 30108,
