@@ -198,7 +198,7 @@ def executar_consulta(unidade, data_inicio, data_fim, log):
 
 ## GERA OS INTERVALOS DE CONSULTA
 data_inicio_consulta = datetime.today().replace(day=1)
-data_limite_consulta = datetime(2040, 12, 31)
+#data_limite_consulta = datetime(2040, 12, 31)
 data_limite_consulta = datetime(2026, 6, 30)
 intervalos = gerar_intervalos_trimestrais(data_inicio_consulta, data_limite_consulta)
 
